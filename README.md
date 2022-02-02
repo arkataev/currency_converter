@@ -30,13 +30,6 @@ Since that, we might consider some persistable in-memory storage, e.g **Redis**.
 #### Exchange rates update
 `ERM` is basically a map of permutations of all values in `SCC` to corresponent exchange rates.
 
-```python
-from itertools import permutations
-from typing import Iterable, Iterator
-
-def permute_scc_pairwise(scc: Iterable) -> Iterator: 
-    yield from permutations(scc, 2)
-```
 As soon as each `CER` (Currency Exchange Rate) can be updated independently this operation 
 might be performed asynchronously, utilizing a **task queue**.
 
@@ -63,6 +56,8 @@ Allows fast retrieval of currency codes available for exchange.
 * `iter() -> Iterator`
 * `contains(code: str) -> bool`
 * `mcontains(codes: Iterable) -> List[bool]`
+* `add(code: str)`
+* `discard(code: str)`
 
 ### Currency Converter (CC)
 Converts given amount of supported currency X to correspondent amount of supported currency Y, using
@@ -72,7 +67,7 @@ exchange rate of (X,Y). Provides web-api for converting operations.
 * Read frequently
 
 #### Interface
-* `convert(exchange_rate: float, amount: float) -> float`
+* `exchange(exchange_rate: float, amount: float) -> float`
 * GET `/currencies/{code}/{code}/convert?n={n}`
 
 ```mermaid
@@ -103,7 +98,7 @@ sequenceDiagram
   ERM ->> CC: cer
   
   activate CC
-    CC ->> CC: convert(cer, amount)
+    CC ->> CC: exchange(cer, amount)
     Note left of CC: result = cer * amount
     CC ->> User: result
   deactivate CC
