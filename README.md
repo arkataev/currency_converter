@@ -30,20 +30,9 @@ Since that, we might consider some persistable in-memory storage, e.g **Redis**.
 #### Exchange rates update
 `ERM` is basically a map of permutations of all values in `SCC` to corresponent exchange rates.
 
+Each exchange rate is retrieved from resource and updated in ERM.
 As soon as each `CER` (Currency Exchange Rate) can be updated independently this operation 
 might be performed asynchronously, utilizing a **task queue**.
-
-```mermaid
-sequenceDiagram
-ERM ->> SCCS: get_scc()
-SCCS ->> ERM: scc
-activate ERM
-  ERM ->> ERM: permute_scc_pairwise()
-  loop for each permutation 
-    ERM -->> ERM: update_cer(code_x, code_y)
-  end
-deactivate ERM
-```
 
 ### Supported Currency Codes Set (SCCS)
 Allows fast retrieval of currency codes available for exchange.
@@ -51,13 +40,6 @@ Allows fast retrieval of currency codes available for exchange.
 * Highly available
 * Read frequently
 * Updated on demand, but potentially very rarely.
-
-#### Interface
-* `iter() -> Iterator`
-* `contains(code: str) -> bool`
-* `mcontains(codes: Iterable) -> List[bool]`
-* `add(code: str)`
-* `discard(code: str)`
 
 ### Currency Converter (CC)
 Converts given amount of supported currency X to correspondent amount of supported currency Y, using
@@ -68,7 +50,6 @@ exchange rate of (X,Y). Provides web-api for converting operations.
 
 #### Interface
 * `exchange(exchange_rate: float, amount: float) -> float`
-* GET `/currencies/{code}/{code}/convert?n={n}`
 
 ```mermaid
 sequenceDiagram
@@ -102,5 +83,8 @@ sequenceDiagram
     Note left of CC: result = cer * amount
     CC ->> User: result
   deactivate CC
-  
 ```
+
+## WEB-API
+To allow greater scalability no state should be stored in API component. 
+* GET `/currencies/{code}/{code}/convert?n={n}`

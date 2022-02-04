@@ -1,9 +1,8 @@
-from currency_converter.erm import Erm
+from itertools import permutations
+
 import pytest
 
-@pytest.fixture
-def erm() -> Erm:
-    return Erm()
+from currency_exchanger.data_structures import Erm
 
 
 @pytest.mark.parametrize('items, length', [
@@ -19,7 +18,8 @@ def test_erm_create(items, length):
     When new Erm is created
     Then len(erm) == N! / (N - 2)!
     """
-    erm = Erm(*items)
+    items = permutations(items, 2)
+    erm = Erm(items)
     assert len(erm) == length
 
 
@@ -37,3 +37,22 @@ def test_iter_erm(erm):
     erm[('ABC', 'ABC')] = 1
     assert list(erm) == [('USD', 'ABC'), ('ABC', 'ABC')]
 
+
+def test_sccs_contains(sccs):
+    sccs.add('a')
+    assert 'a' in sccs
+
+
+def test_sccs_mcontains_all(sccs):
+    sccs.add('a')
+    sccs.add('b')
+    assert all(sccs.mcontains(['a', 'b']))
+
+
+def test_sccs_mcontains_any(sccs):
+    sccs.add('a')
+    assert any(sccs.mcontains(['a', 'b']))
+
+
+def test_sccs_mcontains_none(sccs):
+    assert not all(sccs.mcontains(['a', 'b']))
