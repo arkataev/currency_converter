@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 
-from .data_structures import Sccs, Erm, PersistentErm
+from .data_structures import Sccs, Erm
 
 
 @dataclass
 class CConfig:
-    erm: [Erm, PersistentErm] = Erm()
-    sccs: Sccs = Sccs(('EUR', 'USD', 'CZK', 'PLN'))
+    erm: Erm
+    sccs: Sccs
 
 
 class CurrencyConverter:

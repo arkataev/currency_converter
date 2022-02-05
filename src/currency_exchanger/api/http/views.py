@@ -1,12 +1,10 @@
 from flask.views import View
 
 from currency_exchanger.currency_converter import CConfig, CurrencyConverter
-from currency_exchanger.data_structures import PersistentErm
-from currency_exchanger.storage import MemStorage
 
 
 class ExchangeAPI(View):
-    config: CConfig = CConfig(erm=PersistentErm(MemStorage()))
+    config: CConfig = CConfig()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
