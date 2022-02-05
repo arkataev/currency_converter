@@ -1,0 +1,21 @@
+version: '3'
+
+services:
+  rabbitmq:
+    hostname: rabbitmq
+    image: rabbitmq
+    restart: always
+    volumes:
+#      - ./rabbitmq/etc/definitions.json:/etc/rabbitmq/definitions.json
+      - ./rabbitmq/etc/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+      - ./rabbitmq/data:/var/lib/rabbitmq/mnesia/rabbit@my-rabbit
+      - ./rabbitmq/logs:/var/log/rabbitmq/log
+    ports:
+      - '5672:5672'
+  redis:
+    image: redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - ./redis/data:/data
+    entrypoint: redis-server --appendonly yes

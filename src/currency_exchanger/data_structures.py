@@ -1,80 +1,131 @@
-from typing import MutableMapping, Tuple, Optional, MutableSet, Iterator, List, Set, Iterable
+from abc import abstractmethod
+from typing import MutableMapping, Tuple, Optional, MutableSet, Iterator, List, Sequence
 
-from .storage import IStorage
-
-
-class Erm(MutableMapping):
-    """
-    Exchange Rates Mapping
-
-    Maps currency codes pair to related exchange rate. Default exchange rate is 0.0.
-    Equal currencies exchange rate is always set to 1
-    """
-    def __init__(self, cc_pairs: Optional[Iterable[Tuple[str, str]]] = None):
-        self._erm: [Tuple[str, str], float] = {}
-        if cc_pairs:
-            for pair in cc_pairs:
-                self[pair] = 0.0
-
-    def __getitem__(self, cc_pair: Tuple[str, str]) -> Optional[float]:
-        return self._erm.get(cc_pair, None)
-
-    def __setitem__(self, cc_pair: Tuple[str, str], cer: float):
-        self._erm[cc_pair] = 1.0 if cc_pair[0] == cc_pair[1] else cer
-
-    def __delitem__(self, cc_pair: Tuple[str, str]):
-        del self._erm[cc_pair]
-
-    def __iter__(self) -> Iterator[Tuple[str, str]]:
-        return iter(self._erm)
-
-    def __len__(self):
-        return len(self._erm)
-
-    def update(self, erm: 'Erm', **kwargs) -> None:
-        self._erm.update(erm)
+import redis
 
 
 class Sccs(MutableSet):
     """Supported currency codes set"""
 
-    def __init__(self, *args: [str]):
-        self._sccs: Set[str] = set()
-        if args:
-            for arg in args:
-                self._sccs.add(arg)
-
     def __iter__(self) -> Iterator:
-        return iter(self._sccs)
+        raise NotImplementedError
 
-    def __contains__(self, item) -> bool:
-        return item in self._sccs
+    def __contains__(self, cur_code: str) -> bool:
+        raise NotImplementedError
 
-    def mcontains(self, items: Iterable[str]) -> List[bool]:
-        return [item in self for item in items]
+    @abstractmethod
+    def mcontains(self, cur_codes: Sequence[str]) -> List[bool]:
+        raise NotImplementedError
 
-    def add(self, value: str) -> None:
-        self._sccs.add(value)
+    def add(self, cur_code: str) -> None:
+        raise NotImplementedError
 
-    def discard(self, value: str) -> None:
-        self._sccs.remove(value)
+    def discard(self, cur_code: str) -> None:
+        raise NotImplementedError
 
     def __len__(self):
-        return len(self._sccs)
+        raise NotImplementedError
 
 
-class PersistentErm(Erm):
-    """Erm available to store and load exchange rates using persistent storage"""
-    def __init__(self, storage: IStorage, *args, **kwargs):
-        self.storage = storage
-        super().__init__(*args, **kwargs)
+class Erm(MutableMapping):
+    """
+    Exchange Rates mapping.
+    Maps currency codes pair to correspondent exchange rate
+    """
 
     def __setitem__(self, cc_pair: Tuple[str, str], cer: float):
-        self.storage.put(cc_pair, 1.0 if cc_pair[0] == cc_pair[1] else cer)
-        super().__setitem__(cc_pair, cer)
+        raise NotImplementedError
+
+    def __getitem__(self, cc_pair: Tuple[str, str]) -> float:
+        raise NotImplementedError
+
+    def __len__(self):
+        raise NotImplementedError
+
+    def __iter__(self):
+        raise NotImplementedError
+
+    def __delitem__(self, cc_pair: Tuple[str, str]):
+        raise NotImplementedError
+
+    def __contains__(self, cc_pair: Tuple[str, str]) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def mget(self, cc_pairs: Sequence[Tuple[str, str]]) -> List[float]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def mcontains(self, cc_pairs: Sequence[Tuple[str, str]]) -> List[bool]:
+        raise NotImplementedError
+
+
+class RedisErm(Erm):
+    _name = 'erm'
+
+    def __init__(self, storage: redis.Redis):
+        self._storage = storage
+
+    def __len__(self):
+        return self._storage.hlen(self._name)
+
+    def __iter__(self):
+        return iter(self._storage.hkeys(self._name))
+
+    def __contains__(self, cc_pair: Tuple[str, str]):
+        return self._storage.hexists(self._name, self._make_key(cc_pair))
+
+    def __setitem__(self, cc_pair: Tuple[str, str], cer: float):
+        self._storage.hset(self._name, self._make_key(cc_pair), 1.0 if cc_pair[0] == cc_pair[1] else cer)
 
     def __getitem__(self, cc_pair: Tuple[str, str]) -> Optional[float]:
-        cer = self._erm.get(cc_pair, None)
-        if not cer:
-            cer = self.storage.get(cc_pair)
-        return cer
+        return self._storage.hget(self._name, self._make_key(cc_pair))
+
+    def __delitem__(self, cc_pair: Tuple[str, str]):
+        self._storage.hdel(self._name, self._make_key(cc_pair))
+
+    def mget(self, cc_pairs: Sequence[Tuple[str, str]]) -> List:
+        return self._storage.hmget(self._name, map(self._make_key, cc_pairs))
+
+    def mcontains(self, cc_pairs: Sequence[Tuple[str, str]]) -> List[bool]:
+        pipe = self._storage.pipeline()
+        for pair in cc_pairs:
+            pipe.hexists(self._name, self._make_key(pair))
+        return pipe.execute()
+
+    def values(self):
+        return self._storage.hvals(self._name)
+
+    def items(self):
+        items = self._storage.hgetall(self._name)
+        if items:
+            return items.items()
+
+    @staticmethod
+    def _make_key(cc_pair: Tuple[str, str]):
+        return '/'.join(cc_pair)
+
+
+class RedisSccs(Sccs):
+    _name = 'sccs'
+
+    def __init__(self, storage: redis.Redis):
+        self._storage = storage
+
+    def add(self, cur_code: str) -> None:
+        self._storage.sadd(self._name, cur_code)
+
+    def discard(self, cur_code: str) -> None:
+        self._storage.srem(self._name, cur_code)
+
+    def mcontains(self, cur_codes: Sequence[str]) -> List[bool]:
+        return self._storage.smismember(self._name, cur_codes)
+
+    def __contains__(self, cur_code: str) -> bool:
+        return self._storage.sismember(self._name, cur_code)
+
+    def __len__(self):
+        return self._storage.scard(self._name)
+
+    def __iter__(self):
+        return iter(self._storage.smembers(self._name))
