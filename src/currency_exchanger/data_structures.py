@@ -61,7 +61,7 @@ class Erm(MutableMapping):
 
 
 class RedisErm(Erm):
-    _name = 'erm'
+    _name = 'erm' # TODO:: This on should be a unique persistent value
 
     def __init__(self, storage: redis.Redis):
         self._storage = storage
@@ -107,7 +107,7 @@ class RedisErm(Erm):
 
 
 class RedisSccs(Sccs):
-    _name = 'sccs'
+    _name = 'sccs' # TODO:: This on should be a unique persistent value
 
     def __init__(self, storage: redis.Redis):
         self._storage = storage
