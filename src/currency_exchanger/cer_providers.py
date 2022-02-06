@@ -1,7 +1,8 @@
+import logging
 import os
 from json import JSONDecodeError
 from typing import Optional
-import logging
+
 import requests
 
 logger = logging.getLogger(__name__)

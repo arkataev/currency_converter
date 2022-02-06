@@ -4,6 +4,7 @@ from .cer_providers import ExchangeRateProvider
 from .data_structures import Sccs, Erm
 from .utils import is_valid_cc
 
+
 @dataclass
 class CConfig:
     erm: Erm

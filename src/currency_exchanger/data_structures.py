@@ -1,8 +1,10 @@
+import os
 from abc import abstractmethod
 from typing import MutableMapping, Tuple, Optional, MutableSet, Iterator, List, Sequence
-from .utils import is_valid_cc
+
 import redis
-import os
+
+from .utils import is_valid_cc
 
 
 class Sccs(MutableSet):
@@ -139,6 +141,3 @@ class RedisSccs(Sccs):
 
     def __iter__(self):
         return iter(self._storage.smembers(self._name))
-
-
-
