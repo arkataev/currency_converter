@@ -1,7 +1,14 @@
 import os
+from json import JSONDecodeError
 from typing import Optional
-
+import logging
 import requests
+
+logger = logging.getLogger(__name__)
+
+
+class CerResourceError(Exception):
+    pass
 
 
 class ExchangeRateProvider:
@@ -19,9 +26,24 @@ class FreeCurrencyRateProvider(ExchangeRateProvider):
 
         Fetching can also be optimized. freecurrencyapi returns all available exchange rates
         for a given base currency code, therefore such responses could be cached in memory for 30 sec (this is
-        a refresh rate of the freecurrencyapi).
+        a refresh rate of freecurrencyapi).
         """
         api_key = os.environ.get('FREECURRENCY_API', '2b836850-872a-11ec-9637-f9d7ca27317e')
         response = requests.get(self.api, params={'base_currency': base_ccode, 'apikey': api_key}, timeout=5)
-        data = response.json().get('data', {})
+        try:
+             decoded = response.json()
+        except JSONDecodeError:
+            raise CerResourceError(f'Unexpected response {response.content}')
+
+        if not response.ok:
+            raise CerResourceError(f'Failed to get CER for {base_ccode, target_ccode} from resource {self.api}. '
+                                   f'Reason: {decoded}. Status: {response.status_code}')
+
+        data = decoded.get('data', None)
+
+        if not data:
+            logger.warning(f'No data found for {base_ccode, target_ccode} in {self.api} response. {decoded}')
+            raise CerResourceError(f'Failed to get CER for {base_ccode, target_ccode} from resource {self.api}. '
+                                f'Reason: No data')
+
         return data.get(target_ccode, None)
