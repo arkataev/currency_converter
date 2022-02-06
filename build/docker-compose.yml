@@ -3,6 +3,7 @@ version: '3'
 services:
   rabbitmq:
     hostname: rabbitmq
+    container_name: 'rabbitmq'
     image: rabbitmq
     restart: always
     volumes:
@@ -12,10 +13,47 @@ services:
       - ./rabbitmq/logs:/var/log/rabbitmq/log
     ports:
       - '5672:5672'
+
   redis:
+    container_name: 'redis'
     image: redis
     ports:
       - '6379:6379'
     volumes:
       - ./redis/data:/data
     entrypoint: redis-server --appendonly yes
+    restart: always
+
+  celery_beat:
+    container_name: 'celery_beat'
+    restart: always
+    build: .
+    working_dir: /src
+    env_file:
+      - env.env
+    volumes:
+      - ../src:/src
+    command: ["celery", "-A", "currency_exchanger.tasks", "beat", "-l", "INFO"]
+    depends_on:
+      - celery_worker
+
+  celery_worker:
+    restart: always
+    container_name: 'celery_worker'
+    build: .
+    working_dir: /src
+    env_file:
+      - env.env
+    volumes:
+      - ../src:/src
+    command: [ "celery", "-A", "currency_exchanger.tasks", "worker", "--loglevel", "INFO" ]
+    depends_on:
+      - rabbitmq
+      - redis
+  app:
+    build: .
+    working_dir: /src
+    env_file:
+      - env.env
+    volumes:
+      - ../src:/src
