@@ -1,7 +1,8 @@
 from abc import abstractmethod
 from typing import MutableMapping, Tuple, Optional, MutableSet, Iterator, List, Sequence
-
+from .utils import is_valid_cc
 import redis
+import os
 
 
 class Sccs(MutableSet):
@@ -61,10 +62,13 @@ class Erm(MutableMapping):
 
 
 class RedisErm(Erm):
-    _name = 'erm' # TODO:: This on should be a unique persistent value
+    _name = os.environ.get('REDIS_ERM_NAME', 'erm')
 
     def __init__(self, storage: redis.Redis):
         self._storage = storage
+
+        if not self._name:
+            raise RuntimeError('Redis ERM improperly configured, name is missing')
 
     def __len__(self):
         return self._storage.hlen(self._name)
@@ -76,6 +80,8 @@ class RedisErm(Erm):
         return self._storage.hexists(self._name, self._make_key(cc_pair))
 
     def __setitem__(self, cc_pair: Tuple[str, str], cer: float):
+        is_valid_cc(cc_pair[0])
+        is_valid_cc(cc_pair[1])
         self._storage.hset(self._name, self._make_key(cc_pair), 1.0 if cc_pair[0] == cc_pair[1] else cer)
 
     def __getitem__(self, cc_pair: Tuple[str, str]) -> Optional[float]:
@@ -107,12 +113,16 @@ class RedisErm(Erm):
 
 
 class RedisSccs(Sccs):
-    _name = 'sccs' # TODO:: This on should be a unique persistent value
+    _name = os.environ.get('REDIS_SCCS_NAME', 'sccs')
 
     def __init__(self, storage: redis.Redis):
         self._storage = storage
 
+        if not self._name:
+            raise RuntimeError('Redis SCCS improperly configured, name is missing')
+
     def add(self, cur_code: str) -> None:
+        is_valid_cc(cur_code)
         self._storage.sadd(self._name, cur_code)
 
     def discard(self, cur_code: str) -> None:
@@ -129,3 +139,6 @@ class RedisSccs(Sccs):
 
     def __iter__(self):
         return iter(self._storage.smembers(self._name))
+
+
+
