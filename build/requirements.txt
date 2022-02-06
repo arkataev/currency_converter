@@ -1,4 +1,5 @@
 pytest
+responses
 celery==5.2.3
 redis==4.1.2
 requests==2.27.1

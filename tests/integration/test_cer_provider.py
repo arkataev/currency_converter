@@ -6,7 +6,7 @@ from currency_exchanger.cer_providers import FreeCurrencyRateProvider, CerResour
 
 class TestFreeCurrencyRateProvider:
 
-    @pytest.fixture(scope='class')
+    @pytest.fixture
     def provider(self):
         return FreeCurrencyRateProvider()
 

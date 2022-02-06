@@ -62,7 +62,7 @@ class Erm(MutableMapping):
 
 
 class RedisErm(Erm):
-    _name = os.environ.get('REDIS_ERM_NAME', 'erm')
+    _name = os.environ.get('REDIS_ERM_NAME')
 
     def __init__(self, storage: redis.Redis):
         self._storage = storage
@@ -85,7 +85,7 @@ class RedisErm(Erm):
         self._storage.hset(self._name, self._make_key(cc_pair), 1.0 if cc_pair[0] == cc_pair[1] else cer)
 
     def __getitem__(self, cc_pair: Tuple[str, str]) -> Optional[float]:
-        return self._storage.hget(self._name, self._make_key(cc_pair))
+        return float(self._storage.hget(self._name, self._make_key(cc_pair)))
 
     def __delitem__(self, cc_pair: Tuple[str, str]):
         self._storage.hdel(self._name, self._make_key(cc_pair))
@@ -113,7 +113,7 @@ class RedisErm(Erm):
 
 
 class RedisSccs(Sccs):
-    _name = os.environ.get('REDIS_SCCS_NAME', 'sccs')
+    _name = os.environ.get('REDIS_SCCS_NAME')
 
     def __init__(self, storage: redis.Redis):
         self._storage = storage

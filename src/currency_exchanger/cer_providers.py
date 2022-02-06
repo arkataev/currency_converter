@@ -28,7 +28,7 @@ class FreeCurrencyRateProvider(ExchangeRateProvider):
         for a given base currency code, therefore such responses could be cached in memory for 30 sec (this is
         a refresh rate of freecurrencyapi).
         """
-        api_key = os.environ.get('FREECURRENCY_API', '2b836850-872a-11ec-9637-f9d7ca27317e')
+        api_key = os.environ.get('FREECURRENCY_API')
         response = requests.get(self.api, params={'base_currency': base_ccode, 'apikey': api_key}, timeout=5)
         try:
              decoded = response.json()
@@ -44,6 +44,6 @@ class FreeCurrencyRateProvider(ExchangeRateProvider):
         if not data:
             logger.warning(f'No data found for {base_ccode, target_ccode} in {self.api} response. {decoded}')
             raise CerResourceError(f'Failed to get CER for {base_ccode, target_ccode} from resource {self.api}. '
-                                f'Reason: No data')
+                                   f'Reason: No data')
 
         return data.get(target_ccode, None)
