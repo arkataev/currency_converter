@@ -64,10 +64,11 @@ class Erm(MutableMapping):
 
 
 class RedisErm(Erm):
-    _name = os.environ.get('REDIS_ERM_NAME')
+
 
     def __init__(self, storage: redis.Redis):
         self._storage = storage
+        self._name = os.environ.get('REDIS_ERM_NAME')
 
         if not self._name:
             raise RuntimeError('Redis ERM improperly configured, name is missing')
@@ -115,10 +116,9 @@ class RedisErm(Erm):
 
 
 class RedisSccs(Sccs):
-    _name = os.environ.get('REDIS_SCCS_NAME')
-
     def __init__(self, storage: redis.Redis):
         self._storage = storage
+        self._name = os.environ.get('REDIS_SCCS_NAME')
 
         if not self._name:
             raise RuntimeError('Redis SCCS improperly configured, name is missing')

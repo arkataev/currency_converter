@@ -21,4 +21,3 @@ def sccs():
 @pytest.fixture
 def provider():
     return mock.create_autospec(ExchangeRateProvider, instance=True)
-
