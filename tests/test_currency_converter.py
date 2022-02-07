@@ -4,8 +4,8 @@ from currency_exchanger.currency_converter import CurrencyConverter, CConfig, is
 
 
 @pytest.fixture
-def cc(erm, sccs):
-    conf = CConfig(erm, sccs)
+def cc(erm, sccs, provider):
+    conf = CConfig(erm, sccs, provider)
     return CurrencyConverter(conf)
 
 
@@ -42,9 +42,8 @@ def test_exchange(code_x, code_y, amount, cer, expected, cc):
     When amount of code_x exchanged to code_y
     Then amount of code_y == amount of code_x * cer
     """
-    cc.erm[(code_x, code_y)] = cer
-    cc.sccs.add(code_x)
-    cc.sccs.add(code_y)
+    cc.sccs.mcontains.return_value = [True, True]
+    cc.erm.get.return_value = cer
     assert cc.exchange(code_x, code_y, amount) == expected
 
 
@@ -55,6 +54,7 @@ def test_exchange_not_supported(cc):
     When exchange happens
     Then ValueError is raised
     """
+    cc.sccs.mcontains.return_value = [True, False]
     with pytest.raises(KeyError):
         cc.exchange('USD', 'EUR', 1.0)
 
@@ -67,7 +67,8 @@ def test_exchange_no_cer(cc):
     When exchange happens
     Then KeyError is raised
     """
-    cc.sccs.add('USD')
-    cc.sccs.add('EUR')
+    cc.sccs.return_value = [True, True]
+    cc.erm.get.return_value = None
+    cc.provider.fetch_cer.return_value = None
     with pytest.raises(KeyError):
         cc.exchange('USD', 'EUR', 1.0)
