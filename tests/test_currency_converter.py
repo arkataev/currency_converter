@@ -72,3 +72,13 @@ def test_exchange_no_cer(cc):
     cc.provider.fetch_cer.return_value = None
     with pytest.raises(KeyError):
         cc.exchange('USD', 'EUR', 1.0)
+    assert cc.provider.fetch_cer.called
+
+
+def test_exchange_cer_found_in_provider(cc):
+    cc.sccs.return_value = [True, True]
+    cc.erm.get.return_value = None
+    cc.provider.fetch_cer.return_value = 1.0
+    cc.exchange('USD', 'EUR', 1.0)
+    assert cc.provider.fetch_cer.called
+    assert cc.erm.__setitem__.called
